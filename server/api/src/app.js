@@ -10,10 +10,13 @@ import {
 } from "./middlewares/error.middleware.js";
 
 const app = express();
+// CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+// convert to array from env variable
+const CORS_ORIGINS_URLS = process.env.CORS_ORIGINS;
 
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
-  : ["http://localhost:3000"];
+const corsOrigins = CORS_ORIGINS_URLS
+  ? CORS_ORIGINS_URLS.split(",").map((origin) => origin.trim())
+  : ["http://localhost:3000", "http://localhost:5173"];
 
 app.use(
   cors({
