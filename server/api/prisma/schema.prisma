@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  role           String         @default("OWNER")
+  refreshTokens  RefreshToken[]
+  sales          Sale[]
+  campaigns      Campaign[]
+  insights       Insight[]
+  createdAt      DateTime       @default(now())
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Sale {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime
+  product   String
+  amount    Float
+  channel   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Campaign {
+  id        String   @id @default(uuid())
+  userId    String
+  name      String
+  platform  String
+  startDate DateTime
+  endDate   DateTime
+  responses Int
+  spend     Float
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Insight {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  summary   String
+  data      Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

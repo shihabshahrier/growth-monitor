@@ -1,0 +1,11 @@
+node_modules/
+.venv
+.env
+.env.local
+server/api/node_modules/
+server/api/.env
+server/api/dist/
+server/ai_worker/.env
+__pycache__/
+*.pyc
+.DS_Store
