@@ -7,16 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  industry  String?
+  users     User[]
+  customers Customer[]
+  sales     Sale[]
+  campaigns Campaign[]
+  insights  Insight[]
+  fileUploads FileUpload[]
+  createdAt DateTime @default(now())
+}
+
 model User {
   id             String         @id @default(uuid())
   name           String
   email          String         @unique
   passwordHash   String
   role           String         @default("OWNER")
+  companyId      String?
+  company        Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
   refreshTokens  RefreshToken[]
   sales          Sale[]
   campaigns      Campaign[]
   insights       Insight[]
+  conversations  Conversation[]
+  messages       Message[]
+  auditLogs      AuditLog[]
   createdAt      DateTime       @default(now())
 }
 
@@ -30,25 +48,31 @@ model RefreshToken {
 }
 
 model Sale {
-  id        String   @id @default(uuid())
-  userId    String
-  date      DateTime
-  product   String
-  amount    Float
-  channel   String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId  String?
+  company    Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  date       DateTime
+  product    String
+  amount     Float
+  channel    String
+  createdAt  DateTime  @default(now())
 }
 
 model Campaign {
   id        String   @id @default(uuid())
   userId    String
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   name      String
   platform  String
   startDate DateTime
-  endDate   DateTime
-  responses Int
-  spend     Float
+  endDate   DateTime?
+  responses Int      @default(0)
+  spend     Float    @default(0)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -56,9 +80,70 @@ model Campaign {
 model Insight {
   id        String   @id @default(uuid())
   userId    String
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   title     String
   summary   String
   data      Json
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  phone     String?
+  metadata  Json?
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, email])
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String?
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  role           String       // 'user' or 'assistant'
+  content        String       @db.Text
+  createdAt      DateTime     @default(now())
+}
+
+model FileUpload {
+  id        String   @id @default(uuid())
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  filename  String
+  gcsUrl    String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
+  entity    String   // 'Sale', 'Campaign', 'Insight', 'Customer', 'User'
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
 }

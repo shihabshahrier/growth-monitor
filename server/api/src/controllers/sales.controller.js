@@ -11,8 +11,9 @@ export const listSales = asyncHandler(async (req, res) => {
 });
 
 export const createSale = asyncHandler(async (req, res) => {
-  const { date, product, amount, channel } = req.body ?? {};
-  if (!date || !product || typeof amount !== "number" || !channel) {
+  const { date, product, amount, channel, customerId } = req.body ?? {};
+
+  if (!date || !product || !amount || !channel) {
     return res
       .status(400)
       .json({ message: "date, product, amount, and channel are required" });
@@ -21,6 +22,8 @@ export const createSale = asyncHandler(async (req, res) => {
   const sale = await prisma.sale.create({
     data: {
       userId: req.user.id,
+      companyId: req.user.companyId || null,
+      customerId: customerId || null,
       date: new Date(date),
       product,
       amount,

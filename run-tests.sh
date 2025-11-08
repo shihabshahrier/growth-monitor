@@ -74,7 +74,7 @@ echo "Starting AI worker..."
 AI_WORKER_DIR="ai_worker"
 VENV_PATH_1="$AI_WORKER_DIR/venv"
 VENV_PATH_2="$AI_WORKER_DIR/.venv"
-AI_ENV_FILE="$AI_WORKER_DIR/.env"
+AI_ENV_FILE="$(pwd)/ai_worker/.env"
 
 # Correctly launch uvicorn from the parent 'server' directory
 # so that it recognizes 'ai_worker' as a package.

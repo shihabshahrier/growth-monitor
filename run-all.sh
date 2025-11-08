@@ -39,7 +39,7 @@ echo "   ✅ API server started with PID: $API_PID"
 echo "➡️  Starting AI worker on port 8001..."
 AI_WORKER_DIR="server/ai_worker"
 VENV_PATH="$AI_WORKER_DIR/.venv"
-AI_ENV_FILE="$AI_WORKER_DIR/.env"
+AI_ENV_FILE="$(pwd)/server/ai_worker/.env"
 
 if [ -f "$VENV_PATH/bin/activate" ]; then
     (source "$VENV_PATH/bin/activate" && cd server && uvicorn ai_worker.main:app --port 8001 --env-file "$AI_ENV_FILE") &

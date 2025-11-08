@@ -15,7 +15,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-from .db import fetch_recent_insights, fetch_sales_summary
+from db import fetch_recent_insights, fetch_sales_summary
 
 
 class AgentState(TypedDict):

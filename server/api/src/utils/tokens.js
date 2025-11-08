@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 import { parseDurationToMs } from "./duration.js";
 
 const accessSecret = process.env.ACCESS_TOKEN_SECRET || "access-secret";
@@ -19,7 +20,10 @@ export const signAccessToken = (payload) =>
   });
 
 export const signRefreshToken = (payload) =>
-  jwt.sign(payload, refreshSecret, {
+  jwt.sign({
+    ...payload,
+    jti: crypto.randomBytes(16).toString('hex'), // Add unique JWT ID
+  }, refreshSecret, {
     expiresIn: refreshExpiryValue,
   });
 

@@ -14,6 +14,7 @@ export const authenticate = (req, res, next) => {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
+      companyId: payload.companyId
     };
     return next();
   } catch (error) {

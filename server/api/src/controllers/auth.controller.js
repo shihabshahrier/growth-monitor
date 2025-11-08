@@ -14,6 +14,7 @@ const buildAccessPayload = (user) => ({
   sub: user.id,
   email: user.email,
   role: user.role,
+  companyId: user.companyId
 });
 
 const refreshCookieOptions = {
@@ -66,7 +67,7 @@ const createSession = async (user, res) => {
 };
 
 export const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body ?? {};
+  const { name, email, password, companyName, industry } = req.body ?? {};
 
   if (!name || !email || !password) {
     return res.status(400).json({ message: "Name, email, and password required" });
@@ -82,11 +83,25 @@ export const register = asyncHandler(async (req, res) => {
   }
 
   const passwordHash = await hashPassword(password);
+  
+  // Create company if provided
+  let company = null;
+  if (companyName) {
+    company = await prisma.company.create({
+      data: {
+        name: companyName,
+        industry: industry || null
+      }
+    });
+  }
+
   const user = await prisma.user.create({
     data: {
       name,
       email: normalizedEmail,
       passwordHash,
+      companyId: company?.id || null,
+      role: company ? 'OWNER' : 'OWNER' // Default to OWNER
     },
   });
 
@@ -97,6 +112,7 @@ export const register = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      companyId: user.companyId
     },
     accessToken: session.accessToken,
     expiresIn: getAccessExpiryMs(),

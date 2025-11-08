@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .queue_consumer import consume_queue
-from .redis_client import close_redis, get_redis
+from queue_consumer import consume_queue
+from redis_client import close_redis, get_redis
 
 load_dotenv()
 
@@ -71,8 +71,8 @@ if __name__ == "__main__":  # pragma: no cover - manual launch
     import uvicorn
 
     uvicorn.run(
-        "ai_worker.main:app",
+        "main:app",
         host=os.getenv("HOST", "0.0.0.0"),
-        port=int(os.getenv("PORT", "8000")),
+        port=int(os.getenv("PORT", "8001")),
         reload=os.getenv("RELOAD", "false").lower() == "true",
     )

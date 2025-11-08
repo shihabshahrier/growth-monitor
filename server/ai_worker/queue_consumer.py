@@ -5,8 +5,8 @@ from typing import Any, Dict, List
 
 from redis.exceptions import ConnectionError
 
-from .ai_pipeline import stream_ai_response
-from .redis_client import get_redis
+from ai_pipeline import stream_ai_response
+from redis_client import get_redis
 
 RESULT_TTL_SECONDS = int(os.getenv("AI_RESULT_TTL_SECONDS", "3600"))
 POLL_TIMEOUT_SECONDS = int(os.getenv("AI_QUEUE_POLL_TIMEOUT", "5"))
