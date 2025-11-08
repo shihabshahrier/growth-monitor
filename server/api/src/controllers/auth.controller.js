@@ -83,7 +83,7 @@ export const register = asyncHandler(async (req, res) => {
   }
 
   const passwordHash = await hashPassword(password);
-  
+
   // Create company if provided
   let company = null;
   if (companyName) {

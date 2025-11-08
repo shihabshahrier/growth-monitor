@@ -98,13 +98,13 @@ export const getOverview = asyncHandler(async (req, res) => {
             : 0
     };
 
-  // Cache for 5 minutes
-  await redis.set(cacheKey, JSON.stringify(overview), 'EX', 300);
+    // Cache for 5 minutes
+    await redis.set(cacheKey, JSON.stringify(overview), 'EX', 300);
 
-  res.json({
-    success: true,
-    data: overview
-  });
+    res.json({
+        success: true,
+        data: overview
+    });
 });/**
  * Get sales trend over time
  * GET /api/analytics/sales-trend
@@ -180,12 +180,12 @@ export const getSalesTrend = asyncHandler(async (req, res) => {
         new Date(a.date) - new Date(b.date)
     );
 
-  await redis.set(cacheKey, JSON.stringify(trend), 'EX', 300);
+    await redis.set(cacheKey, JSON.stringify(trend), 'EX', 300);
 
-  res.json({
-    success: true,
-    data: trend
-  });
+    res.json({
+        success: true,
+        data: trend
+    });
 });/**
  * Get sales by channel distribution
  * GET /api/analytics/channel-mix
@@ -237,12 +237,12 @@ export const getChannelMix = asyncHandler(async (req, res) => {
         item.percentage = totalRevenue > 0 ? (item.revenue / totalRevenue) * 100 : 0;
     });
 
-  await redis.set(cacheKey, JSON.stringify(mix), 'EX', 300);
+    await redis.set(cacheKey, JSON.stringify(mix), 'EX', 300);
 
-  res.json({
-    success: true,
-    data: mix
-  });
+    res.json({
+        success: true,
+        data: mix
+    });
 });/**
  * Get top customers by purchase amount
  * GET /api/analytics/top-customers
@@ -314,12 +314,12 @@ export const getTopCustomers = asyncHandler(async (req, res) => {
         purchaseCount: item._count
     }));
 
-  await redis.set(cacheKey, JSON.stringify(topCustomers), 'EX', 300);
+    await redis.set(cacheKey, JSON.stringify(topCustomers), 'EX', 300);
 
-  res.json({
-    success: true,
-    data: topCustomers
-  });
+    res.json({
+        success: true,
+        data: topCustomers
+    });
 });/**
  * Get campaign performance metrics
  * GET /api/analytics/campaign-performance
@@ -365,10 +365,10 @@ export const getCampaignPerformance = asyncHandler(async (req, res) => {
         roi: campaign.spend > 0 ? ((campaign.responses * 100) - campaign.spend) / campaign.spend : 0
     }));
 
-  await redis.set(cacheKey, JSON.stringify(performance), 'EX', 300);
+    await redis.set(cacheKey, JSON.stringify(performance), 'EX', 300);
 
-  res.json({
-    success: true,
-    data: performance
-  });
+    res.json({
+        success: true,
+        data: performance
+    });
 });
