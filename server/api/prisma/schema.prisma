@@ -48,33 +48,49 @@ model RefreshToken {
 }
 
 model Sale {
-  id         String    @id @default(uuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  companyId  String?
-  company    Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  date       DateTime
-  product    String
-  amount     Float
-  channel    String
-  createdAt  DateTime  @default(now())
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  date          DateTime
+  orderId       String?   // order_id from CSV
+  product       String    // product_name from CSV
+  category      String?   // product category
+  region        String?   // sales region
+  channel       String    // sales_channel
+  quantity      Int?      // quantity sold
+  unitPrice     Float?    // unit_price
+  amount        Float     // total_amount
+  paymentMethod String?   // payment_method
+  salesRep      String?   // sales_rep name
+  remarks       String?   // additional notes
+  createdAt     DateTime  @default(now())
 }
 
 model Campaign {
-  id        String   @id @default(uuid())
-  userId    String
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  name      String
-  platform  String
-  startDate DateTime
-  endDate   DateTime?
-  responses Int      @default(0)
-  spend     Float    @default(0)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  userId           String
+  companyId        String?
+  company          Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  name             String    // campaign_name from CSV
+  platform         String    // channel from CSV
+  region           String?   // target region
+  startDate        DateTime  // start_date
+  endDate          DateTime? // end_date
+  spend            Float     @default(0) // budget from CSV
+  impressions      Int?      // ad views
+  clicks           Int?      // interactions
+  responses        Int       @default(0) // leads_generated from CSV
+  conversions      Int?      // actual sales
+  revenueGenerated Float?    // revenue_generated
+  salesRep         String?   // campaign manager
+  status           String    @default("Active") // Active, Completed, Paused
+  remarks          String?   // additional notes
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Insight {
@@ -84,7 +100,9 @@ model Insight {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   title     String
   summary   String
+  type      String   @default("recommendation") // opportunity, warning, trend, recommendation
   data      Json
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

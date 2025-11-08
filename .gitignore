@@ -11,3 +11,9 @@ server/ai_worker/.env
 __pycache__/
 *.pyc
 .DS_Store
+
+# Log files
+*.log
+test-output.log
+test-report.txt
+test-screenshots/

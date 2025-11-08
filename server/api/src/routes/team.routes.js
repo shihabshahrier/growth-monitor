@@ -5,7 +5,8 @@ import {
     updateMemberRole,
     removeMember,
     getCompany,
-    updateCompany
+    updateCompany,
+    resetMemberPassword
 } from "../controllers/team.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { requireRole } from "../middlewares/rbac.middleware.js";
@@ -19,6 +20,7 @@ router.use(authenticate);
 router.get("/members", requireRole(['OWNER', 'ADMIN']), getTeamMembers);
 router.post("/invite", requireRole(['OWNER', 'ADMIN']), inviteTeamMember);
 router.put("/:userId/role", requireRole(['OWNER']), updateMemberRole);
+router.post("/:userId/reset-password", requireRole(['OWNER']), resetMemberPassword);
 router.delete("/:userId", requireRole(['OWNER']), removeMember);
 
 // Company management

@@ -10,10 +10,12 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:seed": "node prisma/seed.js",
+    "test": "node tests/integration.test.js",
     "test:workflow": "node scripts/testWorkflow.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.13.2",
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.14.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { RoleBadge } from "@/components/ui/role-badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocale } from "@/contexts/LocaleContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Globe2, LogOut, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 
-export function Navbar({ onUpload, status }) {
+export function Navbar() {
   const { user, logout } = useAuth();
   const { locale, locales, setLocale, t } = useLocale();
   const { theme, toggleTheme } = useTheme();
@@ -20,11 +21,14 @@ export function Navbar({ onUpload, status }) {
   return (
     <header className="sticky top-0 z-20 flex h-20 items-center justify-between rounded-3xl border border-[hsla(var(--border)_/_0.5)] bg-white/80 px-6 backdrop-blur-xl dark:bg-[hsla(var(--secondary)_/_0.4)]">
       <div>
-        <p className="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
-          {status?.headline ?? t("ready")}
-        </p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-xs uppercase tracking-wide text-[hsl(var(--muted-foreground))]">
+            {t("ready")}
+          </p>
+          <RoleBadge role={user?.role} size="small" />
+        </div>
         <p className="font-display text-lg font-semibold">
-          {status?.subcopy ?? t("welcomeBack")},{" "}
+          {t("welcomeBack")},{" "}
           <span className="text-[hsl(var(--primary))]">{user?.name}</span>
         </p>
       </div>
@@ -61,10 +65,6 @@ export function Navbar({ onUpload, status }) {
               {t("dark")}
             </>
           )}
-        </Button>
-
-        <Button variant="secondary" onClick={onUpload}>
-          {t("uploadData")}
         </Button>
 
         <div className="flex items-center gap-3 rounded-2xl border border-[hsla(var(--border)_/_0.6)] bg-gradient-rose px-4 py-2 text-sm font-medium text-[hsl(var(--foreground))] shadow-glow">

@@ -4,7 +4,7 @@ export function Card({ className, children, ...props }) {
   return (
     <div
       className={cn(
-        "rounded-3xl border border-[hsla(var(--border)_/_0.6)] bg-white/80 p-6 shadow-[0_24px_60px_-40px_rgba(202,138,148,0.6)] backdrop-blur-lg dark:bg-[hsla(var(--secondary)_/_0.4)]",
+        "rounded-3xl border border-[hsla(var(--border)_/_0.6)] bg-white/95 p-6 shadow-[0_24px_60px_-40px_rgba(202,138,148,0.6)] backdrop-blur-lg dark:bg-[hsl(var(--card))] dark:border-[hsl(var(--border))] dark:text-[hsl(var(--card-foreground))]",
         className,
       )}
       {...props}
@@ -26,7 +26,7 @@ export function CardTitle({ className, children, ...props }) {
   return (
     <h3
       className={cn(
-        "font-display text-lg font-semibold text-[hsl(var(--foreground))]",
+        "font-display text-lg font-semibold leading-none tracking-tight text-[hsl(var(--foreground))]",
         className,
       )}
       {...props}
@@ -40,7 +40,7 @@ export function CardDescription({ className, children, ...props }) {
   return (
     <p
       className={cn(
-        "text-sm text-[hsl(var(--muted-foreground))]",
+        "text-sm leading-relaxed text-[hsl(var(--muted-foreground))]",
         className,
       )}
       {...props}

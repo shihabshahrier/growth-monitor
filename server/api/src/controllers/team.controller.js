@@ -320,3 +320,47 @@ export const updateCompany = asyncHandler(async (req, res) => {
         message: "Company updated successfully"
     });
 });
+
+/**
+ * Reset team member password (Owner only)
+ * POST /api/team/:userId/reset-password
+ */
+export const resetMemberPassword = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const companyId = req.user.companyId;
+
+    if (!companyId) {
+        return res.status(400).json({
+            success: false,
+            message: "User must belong to a company"
+        });
+    }
+
+    // Check if target user exists and belongs to same company
+    const targetUser = await prisma.user.findFirst({
+        where: { id: userId, companyId }
+    });
+
+    if (!targetUser) {
+        return res.status(404).json({
+            success: false,
+            message: "Team member not found"
+        });
+    }
+
+    // Generate a new temporary password
+    const tempPassword = Math.random().toString(36).slice(-12);
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    // Update user password
+    await prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash }
+    });
+
+    res.json({
+        success: true,
+        message: "Password reset successfully",
+        tempPassword: tempPassword
+    });
+});

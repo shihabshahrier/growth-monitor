@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createCampaign,
   deleteCampaign,
+  getCampaign,
   listCampaigns,
   updateCampaign,
 } from "../controllers/campaigns.controller.js";
@@ -11,6 +12,7 @@ const router = Router();
 
 router.use(authenticate);
 router.get("/", listCampaigns);
+router.get("/:campaignId", getCampaign);
 router.post("/", createCampaign);
 router.put("/:campaignId", updateCampaign);
 router.delete("/:campaignId", deleteCampaign);

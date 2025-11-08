@@ -6,14 +6,26 @@ import { useAIStream } from "@/hooks/useAIStream";
 import { useLocale } from "@/contexts/LocaleContext";
 import { sleep } from "@/lib/utils";
 
-export function ChatView({ onStatusChange }) {
+export function ChatView({ onStatusChange, conversationId, initialMessages, onSave }) {
   const { apiFetch, showError } = useAuth();
   const { t } = useLocale();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(initialMessages || []);
   const [activeJobId, setActiveJobId] = useState(null);
   const [assistantMessageId, setAssistantMessageId] = useState(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const containerRef = useRef(null);
+
+  // Load initial messages when conversation changes
+  useEffect(() => {
+    if (initialMessages) {
+      setMessages(initialMessages.map(msg => ({
+        ...msg,
+        saved: true,
+      })));
+    } else {
+      setMessages([]);
+    }
+  }, [conversationId, initialMessages]);
 
   const startAssistantMessage = () => {
     const id = crypto.randomUUID();
@@ -36,9 +48,9 @@ export function ChatView({ onStatusChange }) {
       prev.map((message) =>
         message.id === assistantMessageId
           ? {
-              ...message,
-              content: `${message.content}${delta}`,
-            }
+            ...message,
+            content: `${message.content}${delta}`,
+          }
           : message,
       ),
     );
@@ -46,16 +58,21 @@ export function ChatView({ onStatusChange }) {
 
   const finishAssistantMessage = () => {
     if (!assistantMessageId) return;
-    setMessages((prev) =>
-      prev.map((message) =>
+    setMessages((prev) => {
+      const updatedMessages = prev.map((message) =>
         message.id === assistantMessageId
           ? {
-              ...message,
-              streaming: false,
-            }
+            ...message,
+            streaming: false,
+          }
           : message,
-      ),
-    );
+      );
+      // Auto-save after assistant message completes
+      if (onSave && conversationId) {
+        setTimeout(() => onSave(updatedMessages), 1000);
+      }
+      return updatedMessages;
+    });
     setAssistantMessageId(null);
   };
 
@@ -165,8 +182,8 @@ export function ChatView({ onStatusChange }) {
         {messages.length === 0
           ? emptyState
           : messages.map((message) => (
-              <ChatMessage key={message.id} {...message} isStreaming={message.streaming && isStreaming} />
-            ))}
+            <ChatMessage key={message.id} {...message} isStreaming={message.streaming && isStreaming} />
+          ))}
       </div>
       <ChatInput
         disabled={isStreaming}
