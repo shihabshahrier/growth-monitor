@@ -1,13 +1,61 @@
+# Dependencies
 node_modules/
 frontend/node_modules/
-frontend/dist/
-.venv
-.env
-.env.local
 server/api/node_modules/
-server/api/.env
-server/api/dist/
-server/ai_worker/.env
+.venv/
 __pycache__/
 *.pyc
+
+# Build outputs
+frontend/dist/
+frontend/build/
+server/api/dist/
+server/api/build/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+server/api/.env
+server/api/.env.local
+server/ai_worker/.env
+server/ai_worker/.env.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+server.log
+nohup.out
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Test files
+test-output.log
+test-report.txt
+test-screenshots/
+coverage/
+.nyc_output/
+
+# Documentation (keep in separate repo/wiki)
+docs/
+scripts/
+
+# Temporary files
+*.tmp
+*.bak
+.env.bak
+
+# Database
+*.sqlite
+*.db

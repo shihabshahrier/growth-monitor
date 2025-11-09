@@ -1,0 +1,6 @@
+date,customer_name,customer_email,customer_phone,product,amount,channel
+2024-11-01,John Doe,john@example.com,+8801712345678,Product A,5000,Online
+2024-11-02,Jane Smith,jane@example.com,+8801987654321,Product B,3000,Store
+2024-11-03,Bob Johnson,bob@example.com,,Product C,7500,Phone
+2024-11-04,Alice Williams,alice@example.com,+8801555123456,Product D,4200,Online
+2024-11-05,Charlie Brown,charlie@example.com,+8801666789012,Product A,6800,Phone

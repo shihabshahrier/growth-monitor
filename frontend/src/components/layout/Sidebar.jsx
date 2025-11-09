@@ -1,17 +1,98 @@
 import { cn } from "@/lib/utils";
-import { MessageCircle, BarChart3, UploadCloud, Settings } from "lucide-react";
-import { useLocale } from "@/contexts/LocaleContext";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  LayoutDashboard,
+  Users,
+  DollarSign,
+  TrendingUp,
+  MessageCircle,
+  BarChart3,
+  UploadCloud,
+  UsersIcon,
+  Settings,
+  Lightbulb
+} from "lucide-react";
 
-const navItems = (t) => [
-  { id: "chat", label: t("chat"), icon: MessageCircle },
-  { id: "analytics", label: t("dashboard"), icon: BarChart3 },
-  { id: "uploads", label: t("uploads"), icon: UploadCloud },
-  { id: "settings", label: t("settings"), icon: Settings, disabled: true },
+// Define navigation items with role-based access
+// Roles: OWNER, ADMIN, MEMBER, VIEWER
+const navItems = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    roles: ["OWNER", "ADMIN", "MEMBER", "VIEWER"] // All roles
+  },
+  {
+    id: "customers",
+    label: "Customers",
+    icon: Users,
+    roles: ["OWNER", "ADMIN", "MEMBER"] // Not VIEWER
+  },
+  {
+    id: "sales",
+    label: "Sales",
+    icon: DollarSign,
+    roles: ["OWNER", "ADMIN", "MEMBER"] // Not VIEWER
+  },
+  {
+    id: "campaigns",
+    label: "Campaigns",
+    icon: TrendingUp,
+    roles: ["OWNER", "ADMIN", "MEMBER"] // Not VIEWER
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    roles: ["OWNER", "ADMIN", "MEMBER", "VIEWER"] // All roles
+  },
+  {
+    id: "insights",
+    label: "Insights",
+    icon: Lightbulb,
+    roles: ["OWNER", "ADMIN", "MEMBER", "VIEWER"] // All roles
+  },
+  {
+    id: "conversations",
+    label: "Conversations",
+    icon: MessageCircle,
+    roles: ["OWNER", "ADMIN", "MEMBER"] // Not VIEWER
+  },
+  {
+    id: "chat",
+    label: "New Chat",
+    icon: MessageCircle,
+    roles: ["OWNER", "ADMIN", "MEMBER"] // Not VIEWER
+  },
+  {
+    id: "imports",
+    label: "Imports",
+    icon: UploadCloud,
+    roles: ["OWNER", "ADMIN"] // Only OWNER and ADMIN
+  },
+  {
+    id: "team",
+    label: "Team",
+    icon: UsersIcon,
+    roles: ["OWNER", "ADMIN"] // Only OWNER and ADMIN
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    roles: ["OWNER", "ADMIN", "MEMBER", "VIEWER"],
+    disabled: true
+  },
 ];
 
 export function Sidebar({ collapsed, onToggle, activeView, onNavigate }) {
-  const { t } = useLocale();
+  const { user } = useAuth();
 
+  // Filter navigation items based on user role
+  const userRole = user?.role?.toUpperCase() || "VIEWER";
+  const visibleNavItems = navItems.filter(item =>
+    item.roles.includes(userRole)
+  );
   return (
     <aside
       className={cn(
@@ -29,9 +110,6 @@ export function Sidebar({ collapsed, onToggle, activeView, onNavigate }) {
               <p className="font-display text-lg font-semibold leading-tight">
                 GrowthMonitor
               </p>
-              <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                SME Copilot
-              </p>
             </div>
           )}
         </div>
@@ -45,7 +123,7 @@ export function Sidebar({ collapsed, onToggle, activeView, onNavigate }) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-2 pt-4">
-        {navItems(t).map(({ id, label, icon: Icon, disabled }) => (
+        {visibleNavItems.map(({ id, label, icon: Icon, disabled }) => (
           <button
             key={id}
             type="button"
