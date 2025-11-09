@@ -34,21 +34,6 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden items-center gap-2 rounded-2xl border border-[hsla(var(--border)_/_0.6)] bg-white/70 px-3 py-2 text-xs font-medium text-[hsl(var(--foreground))] md:flex dark:bg-[hsla(var(--secondary)_/_0.5)]">
-          <Globe2 className="h-4 w-4 text-[hsl(var(--primary))]" />
-          <select
-            value={locale}
-            onChange={(event) => setLocale(event.target.value)}
-            className="bg-transparent text-sm outline-none"
-          >
-            {Object.entries(locales).map(([code, label]) => (
-              <option key={code} value={code} className="text-black">
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <Button
           variant="ghost"
           className="hidden gap-3 md:flex"

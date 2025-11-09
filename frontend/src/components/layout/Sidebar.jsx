@@ -110,9 +110,6 @@ export function Sidebar({ collapsed, onToggle, activeView, onNavigate }) {
               <p className="font-display text-lg font-semibold leading-tight">
                 GrowthMonitor
               </p>
-              <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                SME Copilot
-              </p>
             </div>
           )}
         </div>

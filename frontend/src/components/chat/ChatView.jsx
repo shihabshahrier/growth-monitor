@@ -190,9 +190,6 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
   const emptyState = useMemo(
     () => (
       <div className="flex h-full flex-col items-center justify-center gap-4 rounded-3xl border border-[hsla(var(--border)_/_0.5)] bg-white/60 text-center text-[hsl(var(--muted-foreground))] dark:bg-[hsla(var(--secondary)_/_0.3)]">
-        <span className="rounded-full bg-[hsla(var(--primary)_/_0.15)] px-4 py-1 text-xs font-medium text-[hsl(var(--primary))]">
-          SME Copilot
-        </span>
         <p className="max-w-md text-lg font-medium text-[hsl(var(--foreground))]">
           {t("welcomeHeadline")}
         </p>
