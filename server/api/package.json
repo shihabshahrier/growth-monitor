@@ -7,11 +7,10 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "build": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:seed": "node prisma/seed.js",
-    "test": "node tests/integration.test.js",
-    "test:workflow": "node scripts/testWorkflow.js"
+    "prisma:seed": "node prisma/seed-demo-comprehensive.js"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.13.2",
@@ -30,10 +29,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "form-data": "^4.0.4",
-    "node-fetch": "^3.3.2",
     "nodemon": "^3.1.0",
-    "prisma": "^5.14.0",
-    "wait-on": "^9.0.1"
+    "prisma": "^5.14.0"
   }
 }
