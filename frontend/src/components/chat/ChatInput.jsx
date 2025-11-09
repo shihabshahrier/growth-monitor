@@ -8,12 +8,30 @@ import { cn } from "@/lib/utils";
 export function ChatInput({ disabled, onSubmit, isStreaming }) {
   const { t } = useLocale();
   const [value, setValue] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!value.trim() || disabled) return;
-    onSubmit?.(value.trim());
-    setValue("");
+    if (!value.trim() || disabled || isSubmitting) return;
+
+    const message = value.trim();
+    setValue(""); // Clear immediately to prevent double submit
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit?.(message);
+    } finally {
+      // Reset after a delay to prevent rapid double-clicks
+      setTimeout(() => setIsSubmitting(false), 500);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    // Submit on Enter (without Shift)
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit(event);
+    }
   };
 
   return (
@@ -24,8 +42,9 @@ export function ChatInput({ disabled, onSubmit, isStreaming }) {
       <Textarea
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={t("chatPlaceholder")}
-        disabled={disabled}
+        disabled={disabled || isSubmitting}
         className="min-h-[80px] resize-none bg-transparent"
       />
       <div className="flex items-center justify-between">
@@ -38,9 +57,9 @@ export function ChatInput({ disabled, onSubmit, isStreaming }) {
           <Mic className="h-4 w-4" />
           {t("speaking")}
         </Button>
-        <Button type="submit" disabled={disabled || !value.trim()}>
+        <Button type="submit" disabled={disabled || !value.trim() || isSubmitting}>
           <Send className="mr-2 h-4 w-4" />
-          {isStreaming ? "..." : t("send")}
+          {isStreaming || isSubmitting ? "..." : t("send")}
         </Button>
       </div>
     </form>

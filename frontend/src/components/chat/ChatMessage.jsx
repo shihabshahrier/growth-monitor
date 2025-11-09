@@ -4,6 +4,11 @@ import { motion } from "framer-motion";
 export function ChatMessage({ role, content, isStreaming }) {
   const isUser = role === "user";
 
+  // Debug logging for assistant messages
+  if (!isUser && !isStreaming && content) {
+    console.log(`🖼️ Rendering assistant message (${content.length} chars):`, content.substring(0, 100) + '...');
+  }
+
   return (
     <div
       className={cn(

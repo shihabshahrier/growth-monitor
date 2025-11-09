@@ -3,46 +3,58 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { ChatView } from "../components/chat/ChatView";
 import { Button } from "../components/ui/button";
-import { ArrowLeft, Save, MessageCircle } from "lucide-react";
+import { MessageSquarePlus, MessageCircle, Trash2, Menu, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const ChatPage = () => {
     const { id: conversationId } = useParams();
     const navigate = useNavigate();
-    const { token } = useAuth();
+    const { apiFetch } = useAuth();
     const [conversation, setConversation] = useState(null);
+    const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [title, setTitle] = useState("");
+    const [currentMessages, setCurrentMessages] = useState([]);
+
+    const handleMessagesChange = useCallback((messages) => {
+        setCurrentMessages(messages);
+    }, []);
+
+    const loadConversations = useCallback(async () => {
+        try {
+            const response = await apiFetch("/conversations");
+            const conversationsData = response.data || response;
+            setConversations(Array.isArray(conversationsData) ? conversationsData : []);
+        } catch (error) {
+            console.error("Error loading conversations:", error);
+        }
+    }, [apiFetch]);
 
     const loadConversation = useCallback(async () => {
         if (!conversationId) return;
 
         try {
             setLoading(true);
-            const response = await fetch(
-                `http://localhost:8080/api/conversations/${conversationId}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            const response = await apiFetch(`/conversations/${conversationId}`);
+            console.log("Conversation response:", response);
 
-            if (!response.ok) {
-                throw new Error("Failed to load conversation");
-            }
-
-            const data = await response.json();
-            setConversation(data.conversation);
-            setTitle(data.conversation.title || "");
+            // Backend returns { success: true, data: conversation }
+            const conversationData = response.data || response;
+            setConversation(conversationData);
+            setTitle(conversationData.title || "");
         } catch (error) {
             console.error("Error loading conversation:", error);
             toast.error("Failed to load conversation");
-            navigate("/conversations");
+            navigate("/chat");
         } finally {
             setLoading(false);
         }
-    }, [conversationId, token, navigate]);
+    }, [conversationId, apiFetch, navigate]);
+
+    useEffect(() => {
+        loadConversations();
+    }, [loadConversations]);
 
     useEffect(() => {
         if (conversationId) {
@@ -56,89 +68,72 @@ export const ChatPage = () => {
         }
 
         try {
+            // Filter only unsaved messages (ones without saved flag or with saved=false)
+            const unsavedMessages = messages.filter(m => !m.saved && m.content && !m.streaming);
+
+            if (unsavedMessages.length === 0) {
+                console.log("No unsaved messages to save");
+                return;
+            }
+
+            console.log(`Saving ${unsavedMessages.length} unsaved messages...`);
+
             // Generate title from first user message if not set
             const generatedTitle = title || messages.find(m => m.role === "user")?.content.substring(0, 50) || "New Conversation";
 
             if (conversationId) {
                 // Update existing conversation
-                const response = await fetch(
-                    `http://localhost:8080/api/conversations/${conversationId}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({
-                            title: generatedTitle,
-                        }),
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error("Failed to update conversation");
-                }
-
-                // Save messages
-                for (const message of messages) {
-                    if (!message.saved) {
-                        await fetch(
-                            `http://localhost:8080/api/conversations/${conversationId}/messages`,
-                            {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    Authorization: `Bearer ${token}`,
-                                },
-                                body: JSON.stringify({
-                                    role: message.role,
-                                    content: message.content,
-                                }),
-                            }
-                        );
-                    }
-                }
-
-                toast.success("Conversation updated");
-            } else {
-                // Create new conversation
-                const response = await fetch("http://localhost:8080/api/conversations", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
+                await apiFetch(`/conversations/${conversationId}`, {
+                    method: "PUT",
                     body: JSON.stringify({
                         title: generatedTitle,
                     }),
                 });
 
-                if (!response.ok) {
-                    throw new Error("Failed to create conversation");
+                // Save only unsaved messages
+                for (const message of unsavedMessages) {
+                    await apiFetch(`/conversations/${conversationId}/messages`, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            role: message.role,
+                            content: message.content,
+                        }),
+                    });
+                    // Mark as saved
+                    message.saved = true;
                 }
 
-                const data = await response.json();
-                const newConversationId = data.conversation.id;
+                // Refresh conversations list
+                loadConversations();
+            } else {
+                // Create new conversation
+                const response = await apiFetch("/conversations", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        title: generatedTitle,
+                    }),
+                });
 
-                // Save messages
-                for (const message of messages) {
-                    await fetch(
-                        `http://localhost:8080/api/conversations/${newConversationId}/messages`,
-                        {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                Authorization: `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({
-                                role: message.role,
-                                content: message.content,
-                            }),
-                        }
-                    );
+                // Backend returns { success: true, data: conversation }
+                const conversationData = response.data || response;
+                const newConversationId = conversationData.id;
+
+                // Save unsaved messages
+                for (const message of unsavedMessages) {
+                    await apiFetch(`/conversations/${newConversationId}/messages`, {
+                        method: "POST",
+                        body: JSON.stringify({
+                            role: message.role,
+                            content: message.content,
+                        }),
+                    });
+                    // Mark as saved
+                    message.saved = true;
                 }
 
                 toast.success("Conversation saved");
+                // Refresh conversations list
+                loadConversations();
                 navigate(`/chat/${newConversationId}`, { replace: true });
             }
         } catch (error) {
@@ -147,66 +142,147 @@ export const ChatPage = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="container mx-auto p-6">
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-                        <p className="mt-4 text-sm text-muted-foreground">
-                            Loading conversation...
-                        </p>
+    const handleDeleteConversation = async (id) => {
+        if (!confirm("Are you sure you want to delete this conversation?")) {
+            return;
+        }
+
+        try {
+            await apiFetch(`/conversations/${id}`, {
+                method: "DELETE",
+            });
+            toast.success("Conversation deleted");
+            loadConversations();
+            if (id === conversationId) {
+                navigate("/chat");
+            }
+        } catch (error) {
+            console.error("Error deleting conversation:", error);
+            toast.error("Failed to delete conversation");
+        }
+    };
+
+    const handleNewConversation = async () => {
+        // If current conversation has messages, save before creating new one
+        if (currentMessages.length > 0) {
+            const hasUnsavedMessages = currentMessages.some(m => !m.saved);
+            if (hasUnsavedMessages) {
+                console.log("Saving current conversation before creating new one...");
+                await handleSaveConversation(currentMessages);
+            }
+        }
+
+        // Clear state and navigate to new chat
+        setConversation(null);
+        setCurrentMessages([]);
+        setTitle("");
+        navigate("/chat");
+    };
+
+    return (
+        <div className="h-full flex">
+            {/* Sidebar */}
+            <div
+                className={`${sidebarOpen ? "w-64" : "w-0"
+                    } flex-shrink-0 border-r bg-muted/30 transition-all duration-300 overflow-hidden`}
+            >
+                <div className="h-full flex flex-col p-4">
+                    {/* New Chat Button */}
+                    <Button
+                        onClick={handleNewConversation}
+                        className="w-full mb-4"
+                        variant="default"
+                    >
+                        <MessageSquarePlus className="h-4 w-4 mr-2" />
+                        New Chat
+                    </Button>
+
+                    {/* Conversations List */}
+                    <div className="flex-1 overflow-y-auto space-y-2">
+                        {conversations.map((conv) => (
+                            <div
+                                key={conv.id}
+                                className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${conv.id === conversationId
+                                    ? "bg-primary/10 border border-primary/20"
+                                    : "hover:bg-muted"
+                                    }`}
+                                onClick={() => navigate(`/chat/${conv.id}`)}
+                            >
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <MessageCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                    <span className="text-sm truncate">
+                                        {conv.title || "Untitled"}
+                                    </span>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteConversation(conv.id);
+                                    }}
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        ))}
+                        {conversations.length === 0 && (
+                            <div className="text-center text-sm text-muted-foreground py-8">
+                                No conversations yet
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
-        );
-    }
 
-    return (
-        <div className="h-full flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-                <div className="flex items-center gap-4">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate("/conversations")}
-                    >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        All Conversations
-                    </Button>
-                    {conversationId && (
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b">
+                    <div className="flex items-center gap-4">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                        >
+                            {sidebarOpen ? (
+                                <X className="h-4 w-4" />
+                            ) : (
+                                <Menu className="h-4 w-4" />
+                            )}
+                        </Button>
                         <div className="flex items-center gap-2">
                             <MessageCircle className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">
-                                {conversation?.title || "Untitled Conversation"}
+                                {conversationId
+                                    ? conversation?.title || "Loading..."
+                                    : "New Conversation"}
                             </span>
                         </div>
+                    </div>
+                </div>
+
+                {/* Chat View */}
+                <div className="flex-1 overflow-hidden p-6">
+                    {loading ? (
+                        <div className="flex items-center justify-center h-full">
+                            <div className="text-center">
+                                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+                                <p className="mt-4 text-sm text-muted-foreground">
+                                    Loading conversation...
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <ChatView
+                            conversationId={conversationId}
+                            initialMessages={conversation?.messages}
+                            onSave={handleSaveConversation}
+                            onMessagesChange={handleMessagesChange}
+                        />
                     )}
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                        const chatView = document.querySelector('[data-chat-view]');
-                        if (chatView) {
-                            const messages = chatView.messages || [];
-                            handleSaveConversation(messages);
-                        }
-                    }}
-                >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Conversation
-                </Button>
-            </div>
-
-            {/* Chat Area */}
-            <div className="flex-1 overflow-hidden p-6">
-                <ChatView
-                    conversationId={conversationId}
-                    initialMessages={conversation?.messages}
-                    onSave={handleSaveConversation}
-                />
             </div>
         </div>
     );

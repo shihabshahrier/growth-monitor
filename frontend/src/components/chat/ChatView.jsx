@@ -6,7 +6,7 @@ import { useAIStream } from "@/hooks/useAIStream";
 import { useLocale } from "@/contexts/LocaleContext";
 import { sleep } from "@/lib/utils";
 
-export function ChatView({ onStatusChange, conversationId, initialMessages, onSave }) {
+export function ChatView({ onStatusChange, conversationId, initialMessages, onSave, onMessagesChange }) {
   const { apiFetch, showError } = useAuth();
   const { t } = useLocale();
   const [messages, setMessages] = useState(initialMessages || []);
@@ -18,14 +18,22 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
   // Load initial messages when conversation changes
   useEffect(() => {
     if (initialMessages) {
-      setMessages(initialMessages.map(msg => ({
+      const loadedMessages = initialMessages.map(msg => ({
         ...msg,
         saved: true,
-      })));
+      }));
+      setMessages(loadedMessages);
     } else {
       setMessages([]);
     }
   }, [conversationId, initialMessages]);
+
+  // Notify parent when messages change
+  useEffect(() => {
+    if (onMessagesChange) {
+      onMessagesChange(messages);
+    }
+  }, [messages, onMessagesChange]);
 
   const startAssistantMessage = () => {
     const id = crypto.randomUUID();
@@ -37,6 +45,7 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
         role: "assistant",
         content: "",
         streaming: true,
+        saved: false, // Mark as unsaved
       },
     ]);
     return id;
@@ -44,6 +53,7 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
 
   const updateAssistantContent = (delta) => {
     if (!assistantMessageId) return;
+    console.log(`📨 Received chunk: "${delta}"`);
     setMessages((prev) =>
       prev.map((message) =>
         message.id === assistantMessageId
@@ -59,16 +69,18 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
   const finishAssistantMessage = () => {
     if (!assistantMessageId) return;
     setMessages((prev) => {
-      const updatedMessages = prev.map((message) =>
-        message.id === assistantMessageId
-          ? {
+      const updatedMessages = prev.map((message) => {
+        if (message.id === assistantMessageId) {
+          console.log(`✅ Final message content (${message.content.length} chars):`, message.content);
+          return {
             ...message,
             streaming: false,
-          }
-          : message,
-      );
-      // Auto-save after assistant message completes
-      if (onSave && conversationId) {
+          };
+        }
+        return message;
+      });
+      // Auto-save after assistant message completes (for both new and existing conversations)
+      if (onSave) {
         setTimeout(() => onSave(updatedMessages), 1000);
       }
       return updatedMessages;
@@ -104,6 +116,15 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
   });
 
   const askQuestion = async (input) => {
+    // Capture conversation history BEFORE adding new message
+    const conversationHistory = messages
+      .filter(msg => !msg.streaming && msg.content)
+      .slice(-10)
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
     setMessages((prev) => [
       ...prev,
       {
@@ -111,6 +132,7 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
         role: "user",
         content: input,
         createdAt: new Date().toISOString(),
+        saved: false, // Mark as unsaved
       },
     ]);
 
@@ -122,11 +144,20 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
     });
 
     try {
+      // Build context - only include history if there are previous messages
+      const context = {
+        source: "frontend",
+      };
+
+      if (conversationHistory.length > 0) {
+        context.conversationHistory = conversationHistory;
+      }
+
       const payload = await apiFetch("/ai/query", {
         method: "POST",
         body: JSON.stringify({
           query: input,
-          context: { source: "frontend" },
+          context,
         }),
       });
       if (!payload?.jobId) {
@@ -174,10 +205,11 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
   );
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col">
+      {/* Scrollable Messages Area */}
       <div
         ref={containerRef}
-        className="flex-1 space-y-4 overflow-y-auto rounded-3xl bg-white/40 p-6 dark:bg-[hsla(var(--secondary)_/_0.2)]"
+        className="flex-1 space-y-4 overflow-y-auto rounded-t-3xl bg-white/40 p-6 dark:bg-[hsla(var(--secondary)_/_0.2)]"
       >
         {messages.length === 0
           ? emptyState
@@ -185,11 +217,15 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
             <ChatMessage key={message.id} {...message} isStreaming={message.streaming && isStreaming} />
           ))}
       </div>
-      <ChatInput
-        disabled={isStreaming}
-        isStreaming={isStreaming}
-        onSubmit={askQuestion}
-      />
+
+      {/* Fixed Input at Bottom */}
+      <div className="flex-shrink-0 p-4 bg-background/50 backdrop-blur-sm">
+        <ChatInput
+          disabled={isStreaming}
+          isStreaming={isStreaming}
+          onSubmit={askQuestion}
+        />
+      </div>
     </div>
   );
 }

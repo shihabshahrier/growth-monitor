@@ -16,11 +16,19 @@ export const enqueueQuery = asyncHandler(async (req, res) => {
   }
 
   const jobId = uuidv4();
+
+  // Enrich context with user's companyId for customer queries
+  const enrichedContext = {
+    ...context,
+    companyId: req.user.companyId,
+    userId: req.user.id,
+  };
+
   const payload = {
     jobId,
     userId: req.user.id,
     query,
-    context,
+    context: enrichedContext,
     createdAt: new Date().toISOString(),
   };
 
@@ -56,24 +64,36 @@ export const streamResult = asyncHandler(async (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  const interval = setInterval(async () => {
-    const chunk = await redis.lpop(`ai_stream:${jobId}`);
-    if (!chunk) {
-      return;
-    }
+  let isDone = false;
 
-    res.write(`data: ${chunk}\n\n`);
+  const interval = setInterval(async () => {
+    if (isDone) return;
+
+    // Pop message from Redis
+    const message = await redis.lpop(`ai_stream:${jobId}`);
+    if (!message) return;
 
     try {
-      const parsed = JSON.parse(chunk);
+      const parsed = JSON.parse(message);
+
       if (parsed.done) {
+        isDone = true;
         clearInterval(interval);
+        res.write(`data: ${message}\n\n`);
         res.end();
+        console.log(`✅ Finished streaming job ${jobId}`);
+        return;
+      }
+
+      if (parsed.content) {
+        console.log(`� Sending full response (${parsed.content.length} chars) to frontend`);
+        // Send the whole thing at once
+        res.write(`data: ${message}\n\n`);
       }
     } catch (error) {
-      // Ignore malformed chunk and continue streaming.
+      console.error(`❌ Error parsing message for job ${jobId}:`, error);
     }
-  }, 500);
+  }, 20);
 
   const cleanUp = () => {
     clearInterval(interval);

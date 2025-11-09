@@ -17,3 +17,6 @@ __pycache__/
 test-output.log
 test-report.txt
 test-screenshots/
+
+docs/
+scripts/

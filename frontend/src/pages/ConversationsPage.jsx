@@ -8,32 +8,38 @@ import { toast } from "sonner";
 
 export const ConversationsPage = () => {
     const navigate = useNavigate();
-    const { token } = useAuth();
+    const { apiFetch } = useAuth();
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const loadConversations = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await fetch("http://localhost:8080/api/conversations", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const response = await apiFetch("/conversations");
+            console.log("Full API response:", response);
+            console.log("Response type:", typeof response);
+            console.log("Response.data:", response?.data);
 
-            if (!response.ok) {
-                throw new Error("Failed to load conversations");
+            if (response && response.data) {
+                setConversations(response.data);
+            } else if (Array.isArray(response)) {
+                setConversations(response);
+            } else {
+                console.error("Unexpected response format:", response);
+                setConversations([]);
             }
-
-            const data = await response.json();
-            setConversations(data.conversations || []);
         } catch (error) {
             console.error("Error loading conversations:", error);
-            toast.error("Failed to load conversations");
+            console.error("Error details:", {
+                message: error.message,
+                status: error.status,
+                payload: error.payload
+            });
+            toast.error(error.message || "Failed to load conversations");
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [apiFetch]);
 
     useEffect(() => {
         loadConversations();
@@ -45,19 +51,9 @@ export const ConversationsPage = () => {
         }
 
         try {
-            const response = await fetch(
-                `http://localhost:8080/api/conversations/${id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error("Failed to delete conversation");
-            }
+            await apiFetch(`/conversations/${id}`, {
+                method: "DELETE",
+            });
 
             toast.success("Conversation deleted successfully");
             setConversations((prev) => prev.filter((c) => c.id !== id));

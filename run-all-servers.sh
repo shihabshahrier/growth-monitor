@@ -258,14 +258,13 @@ if [ "$AI_WORKER_RUNNING" = false ]; then
         echo -e "${BLUE}🤖 Step 4: Starting AI Worker...${NC}"
         echo "----------------------------------------"
         
-        # Check if Redis is running
-        if ! redis-cli ping > /dev/null 2>&1; then
-            echo -e "  ${YELLOW}⚠${NC}  Redis is not running. AI Worker requires Redis."
-            echo -e "  ${CYAN}→${NC} Start Redis with: brew services start redis"
-            echo -e "  ${CYAN}→${NC} Or install: brew install redis"
-            echo ""
+        # Check if Redis URL is configured (supports both local and cloud Redis like Upstash)
+        if [ -f "$AI_WORKER_DIR/.env" ] && grep -q "REDIS_URL=" "$AI_WORKER_DIR/.env" 2>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} Redis configured (local or cloud)"
         else
-            echo -e "  ${GREEN}✓${NC} Redis is running"
+            echo -e "  ${YELLOW}⚠${NC}  REDIS_URL not found in .env. AI Worker requires Redis."
+            echo -e "  ${CYAN}→${NC} Add REDIS_URL to server/ai_worker/.env"
+            echo ""
         fi
         
         cd "$AI_WORKER_DIR"
