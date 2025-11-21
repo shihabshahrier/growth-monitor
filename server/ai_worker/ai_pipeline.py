@@ -156,6 +156,11 @@ def _build_tools(
     enriched_context: Dict[str, Any],
 ) -> List[Tool]:
     """Build comprehensive set of tools for the AI agent."""
+    print(f"🔧 Building tools with:")
+    print(f"   user_id: {user_id}")
+    print(f"   company_id: {company_id}")
+    print(f"   context keys: {list(enriched_context.keys())}")
+    
     tools: List[Tool] = []
 
     def _format_output(data: Any, empty_message: str) -> str:
@@ -438,11 +443,21 @@ def _build_tools(
 
         def customer_retention_tool(_: str = "") -> str:
             """Get customer retention metrics."""
-            data = fetch_customer_retention_metrics(company_id)
-            return _format_output(
-                data,
-                "No retention data available.",
-            )
+            if not company_id:
+                print("⚠️  Cannot fetch retention metrics: company_id is None")
+                return "Unable to fetch retention metrics: Company information not available."
+            
+            print(f"🔧 Calling fetch_customer_retention_metrics: company_id={company_id}")
+            try:
+                data = fetch_customer_retention_metrics(company_id)
+                print(f"   Result: {data[:2] if data else 'None'}... (showing first 2)")
+                return _format_output(
+                    data,
+                    "No retention data available.",
+                )
+            except Exception as e:
+                print(f"❌ Error fetching retention metrics: {e}")
+                return f"Error fetching retention metrics: {str(e)}"
 
         tools.append(
             Tool(

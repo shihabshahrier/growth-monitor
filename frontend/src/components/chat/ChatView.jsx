@@ -26,7 +26,7 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
     } else {
       setMessages([]);
     }
-  }, [conversationId, initialMessages]);
+  }, [conversationId]); // Only depend on conversationId to prevent re-loading on every render
 
   // Notify parent when messages change
   useEffect(() => {
