@@ -81,6 +81,9 @@ export const ChatPage = () => {
             // Generate title from first user message if not set
             const generatedTitle = title || messages.find(m => m.role === "user")?.content.substring(0, 50) || "New Conversation";
 
+            // Track saved message IDs for state update
+            const savedMessageIds = [];
+
             if (conversationId) {
                 // Update existing conversation
                 await apiFetch(`/conversations/${conversationId}`, {
@@ -92,16 +95,29 @@ export const ChatPage = () => {
 
                 // Save only unsaved messages
                 for (const message of unsavedMessages) {
-                    await apiFetch(`/conversations/${conversationId}/messages`, {
-                        method: "POST",
-                        body: JSON.stringify({
-                            role: message.role,
-                            content: message.content,
-                        }),
-                    });
-                    // Mark as saved
-                    message.saved = true;
+                    try {
+                        await apiFetch(`/conversations/${conversationId}/messages`, {
+                            method: "POST",
+                            body: JSON.stringify({
+                                role: message.role,
+                                content: message.content,
+                            }),
+                        });
+                        savedMessageIds.push(message.id);
+                    } catch (err) {
+                        console.error(`Failed to save message ${message.id}:`, err);
+                        // Continue saving other messages
+                    }
                 }
+
+                // Update state to mark messages as saved
+                setCurrentMessages(prev => 
+                    prev.map(msg => 
+                        savedMessageIds.includes(msg.id) 
+                            ? { ...msg, saved: true } 
+                            : msg
+                    )
+                );
 
                 // Refresh conversations list
                 loadConversations();
@@ -120,16 +136,29 @@ export const ChatPage = () => {
 
                 // Save unsaved messages
                 for (const message of unsavedMessages) {
-                    await apiFetch(`/conversations/${newConversationId}/messages`, {
-                        method: "POST",
-                        body: JSON.stringify({
-                            role: message.role,
-                            content: message.content,
-                        }),
-                    });
-                    // Mark as saved
-                    message.saved = true;
+                    try {
+                        await apiFetch(`/conversations/${newConversationId}/messages`, {
+                            method: "POST",
+                            body: JSON.stringify({
+                                role: message.role,
+                                content: message.content,
+                            }),
+                        });
+                        savedMessageIds.push(message.id);
+                    } catch (err) {
+                        console.error(`Failed to save message ${message.id}:`, err);
+                        // Continue saving other messages
+                    }
                 }
+
+                // Update state to mark messages as saved
+                setCurrentMessages(prev => 
+                    prev.map(msg => 
+                        savedMessageIds.includes(msg.id) 
+                            ? { ...msg, saved: true } 
+                            : msg
+                    )
+                );
 
                 toast.success("Conversation saved");
                 // Refresh conversations list

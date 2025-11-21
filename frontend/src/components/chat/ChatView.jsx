@@ -79,13 +79,20 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
         }
         return message;
       });
-      // Auto-save after assistant message completes (for both new and existing conversations)
-      if (onSave) {
-        setTimeout(() => onSave(updatedMessages), 1000);
-      }
       return updatedMessages;
     });
     setAssistantMessageId(null);
+
+    // Auto-save after assistant message completes (for both new and existing conversations)
+    // Use requestAnimationFrame to ensure state is updated before saving
+    if (onSave) {
+      requestAnimationFrame(() => {
+        setMessages((currentMessages) => {
+          onSave(currentMessages);
+          return currentMessages;
+        });
+      });
+    }
   };
 
   const { cancel } = useAIStream(activeJobId, {
@@ -105,7 +112,13 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
     onError: (error) => {
       console.error(error);
       setIsStreaming(false);
-      finishAssistantMessage();
+
+      // Remove the empty assistant message instead of saving it
+      if (assistantMessageId) {
+        setMessages((prev) => prev.filter(msg => msg.id !== assistantMessageId));
+        setAssistantMessageId(null);
+      }
+
       setActiveJobId(null);
       showError("AI stream error", error.message);
       onStatusChange?.({
@@ -116,25 +129,25 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
   });
 
   const askQuestion = async (input) => {
-    // Capture conversation history BEFORE adding new message
-    const conversationHistory = messages
+    // Add user message to state first
+    const userMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: input,
+      createdAt: new Date().toISOString(),
+      saved: false, // Mark as unsaved
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Capture conversation history AFTER adding new message (including current message)
+    const conversationHistory = [...messages, userMessage]
       .filter(msg => !msg.streaming && msg.content)
-      .slice(-10)
+      .slice(-20) // Increased from 10 to 20 for better context
       .map(msg => ({
         role: msg.role,
         content: msg.content,
       }));
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        role: "user",
-        content: input,
-        createdAt: new Date().toISOString(),
-        saved: false, // Mark as unsaved
-      },
-    ]);
 
     const placeholderId = startAssistantMessage();
     setIsStreaming(true);
@@ -144,9 +157,10 @@ export function ChatView({ onStatusChange, conversationId, initialMessages, onSa
     });
 
     try {
-      // Build context - only include history if there are previous messages
+      // Build context - always include history and conversation ID
       const context = {
         source: "frontend",
+        conversationId: conversationId || null,
       };
 
       if (conversationHistory.length > 0) {

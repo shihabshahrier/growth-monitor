@@ -22,6 +22,9 @@ const extractEvents = (buffer) => {
 export function useAIStream(jobId, { onChunk, onDone, onError } = {}) {
   const { accessToken } = useAuth();
   const abortRef = useRef(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
+  const streamTimeout = 120000; // 2 minutes
 
   useEffect(() => {
     if (!jobId || !accessToken) {
@@ -30,9 +33,16 @@ export function useAIStream(jobId, { onChunk, onDone, onError } = {}) {
 
     const controller = new AbortController();
     abortRef.current = controller;
+    let timeoutId = null;
 
-    const stream = async () => {
+    const stream = async (retryCount = 0) => {
       try {
+        // Set timeout for the entire stream
+        timeoutId = setTimeout(() => {
+          controller.abort();
+          onError?.(new Error("Stream timeout - AI took too long to respond"));
+        }, streamTimeout);
+
         const response = await fetch(
           `${import.meta.env.VITE_API_URL ?? "http://localhost:8080/api"}/ai/stream/${jobId}`,
           {
@@ -45,6 +55,12 @@ export function useAIStream(jobId, { onChunk, onDone, onError } = {}) {
         );
 
         if (!response.ok || !response.body) {
+          // Retry on 5xx errors
+          if (response.status >= 500 && retryCount < maxRetries) {
+            console.log(`Stream failed with ${response.status}, retrying (${retryCount + 1}/${maxRetries})...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+            return stream(retryCount + 1);
+          }
           throw new Error(`Stream failed with status ${response.status}`);
         }
 
@@ -86,8 +102,23 @@ export function useAIStream(jobId, { onChunk, onDone, onError } = {}) {
             }
           }
         }
+        // Clear timeout on successful completion
+        if (timeoutId) clearTimeout(timeoutId);
       } catch (error) {
-        if (controller.signal.aborted) return;
+        if (timeoutId) clearTimeout(timeoutId);
+
+        if (controller.signal.aborted) {
+          console.log("Stream aborted by user");
+          return;
+        }
+
+        // Retry on network errors
+        if (error.name === 'TypeError' && retryCount < maxRetries) {
+          console.log(`Network error, retrying (${retryCount + 1}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+          return stream(retryCount + 1);
+        }
+
         console.error("AI stream error", error);
         onError?.(error);
       }
@@ -96,6 +127,7 @@ export function useAIStream(jobId, { onChunk, onDone, onError } = {}) {
     stream();
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       controller.abort();
     };
   }, [jobId, accessToken, onChunk, onDone, onError]);

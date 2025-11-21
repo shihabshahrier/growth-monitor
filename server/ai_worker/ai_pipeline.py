@@ -133,13 +133,20 @@ def _chunk_text(text: str, chunk_size: int = 100) -> List[str]:
 
 
 def _mock_response(query: str, context: Dict[str, Any]) -> List[str]:
-    base = "GrowthMonitor AI is running in mock mode."
-    context_summary = json.dumps(context, default=str) if context else "{}"
+    base = "🤖 **GrowthMonitor AI - Configuration Required**\n\n"
     return [
-        base + "\n",
-        f"Question: {query}\n",
-        f"Context received: {context_summary}\n",
-        "Please configure GEMINI_API_KEY to enable live analysis.",
+        base,
+        "I'm unable to process your query because the AI service is not properly configured.\n\n",
+        "**Your Question:** " + query + "\n\n",
+        "**To enable AI analysis:**\n",
+        "1. Get a Gemini API key from: https://makersuite.google.com/app/apikey\n",
+        "2. Add it to `server/ai_worker/.env`:\n",
+        "   ```\n",
+        "   GEMINI_API_KEY=your-api-key-here\n",
+        "   GEMINI_MODEL=gemini-1.5-flash\n",
+        "   ```\n",
+        "3. Restart the AI worker service\n\n",
+        "**Need help?** Check the documentation or contact support.\n",
     ]
 
 
@@ -679,10 +686,59 @@ async def stream_ai_response(
         config = {"recursion_limit": 10}
         result_state = await agent_app.ainvoke(initial_state, config=config)
     except Exception as error:  # pragma: no cover - defensive path
-        fallback = _mock_response(query, enriched_context)
-        fallback.append(f"Encountered error while running agent: {error}")
-        for chunk in fallback:
-            yield chunk
+        error_str = str(error)
+        print(f"❌ AI Agent Error: {error_str}")
+        
+        # Provide user-friendly error messages
+        if "429" in error_str or "quota" in error_str.lower() or "exhausted" in error_str.lower():
+            yield "🚫 **API Quota Exceeded**\n\n"
+            yield "The Gemini API quota has been exhausted. This can happen due to:\n\n"
+            yield "**Possible Causes:**\n"
+            yield "1. **Free tier limits reached** - Gemini API free tier has daily/monthly limits\n"
+            yield "2. **Invalid API key** - The configured key may not be valid\n"
+            yield "3. **Rate limiting** - Too many requests in a short time\n\n"
+            yield "**Solutions:**\n"
+            yield "1. **Wait and retry** - Quotas reset daily\n"
+            yield "2. **Check your API key** at https://makersuite.google.com/app/apikey\n"
+            yield "3. **Upgrade to paid tier** for higher limits\n"
+            yield "4. **Switch to a different model** in `.env`:\n"
+            yield "   ```\if the database is running, then the redis is running\n"
+            yield "   GEMINI_MODEL=gemini-1.5-flash\n"
+            yield "   ```\n\n"
+            yield f"**Technical Details:** {error_str}\n"
+        elif "401" in error_str or "unauthorized" in error_str.lower():
+            yield "🔐 **Authentication Error**\n\n"
+            yield "The Gemini API key is invalid or not properly configured.\n\n"
+            yield "**To fix:**\n"
+            yield "1. Get a valid API key from: https://makersuite.google.com/app/apikey\n"
+            yield "2. Update `server/ai_worker/.env`:\n"
+            yield "   ```\n"
+            yield "   GEMINI_API_KEY=your-valid-api-key\n"
+            yield "   ```\n"
+            yield "3. Restart the AI worker: `./stop.sh && ./start.sh`\n\n"
+            yield f"**Error:** {error_str}\n"
+        elif "404" in error_str or "not found" in error_str.lower():
+            yield "❓ **Model Not Found**\n\n"
+            yield "The specified Gemini model is not available.\n\n"
+            yield "**Try these stable models:**\n"
+            yield "- `gemini-1.5-flash` (recommended - fast and cost-effective)\n"
+            yield "- `gemini-1.5-pro` (more capable)\n"
+            yield "- `gemini-pro` (stable)\n\n"
+            yield "Update in `server/ai_worker/.env`:\n"
+            yield "```\n"
+            yield "GEMINI_MODEL=gemini-1.5-flash\n"
+            yield "```\n\n"
+            yield f"**Error:** {error_str}\n"
+        else:
+            yield "⚠️ **AI Processing Error**\n\n"
+            yield "An unexpected error occurred while processing your query.\n\n"
+            yield "**Your Question:** " + query + "\n\n"
+            yield "**Error Details:** " + error_str + "\n\n"
+            yield "**Troubleshooting:**\n"
+            yield "1. Check the AI worker logs: `tail -f logs/ai_worker.log`\n"
+            yield "2. Verify environment configuration in `server/ai_worker/.env`\n"
+            yield "3. Restart services: `./stop.sh && ./start.sh`\n"
+            yield "4. If the issue persists, contact support\n"
         return
 
     ai_messages = [
