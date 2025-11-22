@@ -156,6 +156,27 @@ export const addMessage = asyncHandler(async (req, res) => {
         });
     }
 
+    // Check for duplicate message (same content, role, and recent timestamp)
+    const recentDuplicate = await prisma.message.findFirst({
+        where: {
+            conversationId: id,
+            role,
+            content,
+            createdAt: {
+                gte: new Date(Date.now() - 5000) // Within last 5 seconds
+            }
+        }
+    });
+
+    if (recentDuplicate) {
+        console.log(`Duplicate message detected for conversation ${id}, returning existing message`);
+        return res.status(200).json({
+            success: true,
+            data: recentDuplicate,
+            duplicate: true
+        });
+    }
+
     const message = await prisma.message.create({
         data: {
             conversationId: id,
