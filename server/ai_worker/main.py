@@ -62,11 +62,6 @@ async def healthcheck_head() -> None:
     return None
 
 
-@app.head("/healthz")
-async def healthcheck_head() -> None:
-    return None
-
-
 if __name__ == "__main__":  # pragma: no cover - manual launch
     import uvicorn
 

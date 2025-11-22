@@ -512,7 +512,7 @@ def fetch_customer_retention_metrics(company_id: str) -> List[Dict]:
             active_customers - returning_customers AS new_customers,
             CASE 
                 WHEN active_customers > 0 THEN 
-                    ROUND((CAST(returning_customers AS FLOAT) / active_customers * 100), 2)
+                    ROUND(CAST((CAST(returning_customers AS FLOAT) / active_customers * 100) AS NUMERIC), 2)
                 ELSE 0 
             END AS retention_rate
         FROM monthly_customers

@@ -80,26 +80,36 @@ export const streamResult = asyncHandler(async (req, res) => {
         isDone = true;
         clearInterval(interval);
         res.write(`data: ${message}\n\n`);
+        console.log(`✅ Finished streaming job ${jobId} - closing connection`);
         res.end();
-        console.log(`✅ Finished streaming job ${jobId}`);
         return;
       }
 
       if (parsed.content) {
-        console.log(`� Sending full response (${parsed.content.length} chars) to frontend`);
-        // Send the whole thing at once
+        console.log(`📤 Sending response (${parsed.content.length} chars) for job ${jobId}`);
         res.write(`data: ${message}\n\n`);
       }
     } catch (error) {
       console.error(`❌ Error parsing message for job ${jobId}:`, error);
+      isDone = true;
+      clearInterval(interval);
+      res.write(`data: ${JSON.stringify({ error: "Stream parsing error", done: true })}\n\n`);
+      res.end();
     }
   }, 20);
 
   const cleanUp = () => {
+    if (!isDone) {
+      console.log(`⚠️  Stream connection closed early for job ${jobId}`);
+    }
     clearInterval(interval);
   };
 
   req.on("close", cleanUp);
+  req.on("error", (err) => {
+    console.error(`❌ Stream error for job ${jobId}:`, err);
+    cleanUp();
+  });
 });
 
 export const getResult = asyncHandler(async (req, res) => {
