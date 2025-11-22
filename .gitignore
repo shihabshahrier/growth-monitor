@@ -59,3 +59,4 @@ scripts/
 # Database
 *.sqlite
 *.db
+logs/

@@ -658,27 +658,47 @@ async def stream_ai_response(
         "**Trends & Forecasting:** Analyze patterns over time, predict future performance\n"
         "**Recommendations:** Suggest specific actions based on data (with numbers to back it up)\n\n"
         
-        "## Conversation Context:\n"
-        "- Reference previous messages when users say 'that', 'it', 'those'\n"
-        "- Build on previous analysis, don't repeat information\n"
-        "- If asked to elaborate, provide deeper analysis with more metrics\n\n"
+        "## 💬 CONVERSATION CONTEXT - CRITICAL:\n\n"
+        "**YOU HAVE ACCESS TO THE FULL CONVERSATION HISTORY!**\n"
+        "- When user says 'which one', 'that product', 'the best one' → REFER TO PREVIOUS MESSAGES\n"
+        "- When user says 'last month', 'this quarter' → USE TIME CONTEXT FROM CONVERSATION\n"
+        "- When user asks follow-up questions → BUILD ON PREVIOUS TOOL RESULTS\n"
+        "- NEVER say 'I don't have that data' if it was just discussed\n"
+        "- ALWAYS check conversation history BEFORE calling tools again\n\n"
         
-        "**REMEMBER:** Complete responses with ALL requested items and specific numbers!"
+        "**Examples of Context Usage:**\n"
+        "User: 'Show me top 5 products'\n"
+        "You: [Call fetch_top_products, show results]\n\n"
+        "User: 'Which one has the best margin?'\n"
+        "You: [LOOK AT PREVIOUS RESPONSE - the products are: Jewelry Set, Winter Jacket, etc.]\n"
+        "      [Call tools if needed for margin data, or analyze from previous results]\n\n"
+        "User: 'How many did we sell last month?'\n"
+        "You: [CHECK CONVERSATION - if 'last month' was mentioned, use that timeframe]\n"
+        "      [Call fetch_sales_by_time_period with appropriate date range]\n\n"
+        
+        "**REMEMBER:** \n"
+        "1. Complete responses with ALL requested items and specific numbers!\n"
+        "2. USE conversation history to understand context and references!\n"
+        "3. Don't ask users to repeat information that's already in the conversation!"
     )
 
     # Build conversation history from context
     conversation_history = []
     if enriched_context and "conversationHistory" in enriched_context:
         history = enriched_context.get("conversationHistory", [])
+        print(f"📜 Conversation history: {len(history)} messages")
         if isinstance(history, list):
-            for msg in history:
+            for i, msg in enumerate(history):
                 if isinstance(msg, dict) and "role" in msg and "content" in msg:
                     role = msg["role"]
                     content = msg["content"]
+                    print(f"   [{i+1}] {role}: {content[:50]}...")
                     if role == "user":
                         conversation_history.append(HumanMessage(content=content))
                     elif role == "assistant":
                         conversation_history.append(AIMessage(content=content))
+    else:
+        print(f"⚠️  No conversation history in context")
     
     # Add supplemental context to system message (excluding conversationHistory)
     if enriched_context:
