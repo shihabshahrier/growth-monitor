@@ -404,3 +404,7 @@ Contributions welcome! Please open an issue or PR.
 ---
 
 Made with ❤️ for SMEs worldwide
+
+---
+
+📖 **Project page:** https://shihub.online/projects/growth-monitor
